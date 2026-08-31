@@ -254,6 +254,6 @@ className="w-full flex items-center justify-center gap-2 py-3.5 bg-red-500
      </div>
     </div>
   )
-}
+}  
 
 export default Scheduler
