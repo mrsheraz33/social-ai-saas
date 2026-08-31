@@ -71,7 +71,7 @@ const AccountList = ({ accounts, onDisconnect }: AccountListProps) => {
               </div>
 
               <button
-                onClick={() => handleDisconnect(account.id)}
+                onClick={() => handleDisconnect(account._id)}
                 title="Disconnect account"
                 className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 transition-all"
               >
