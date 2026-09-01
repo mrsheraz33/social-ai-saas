@@ -1,13 +1,13 @@
 # Ignore node_modules in all subfolders
 node_modules/
 client/node_modules/
-backend/node_modules/
+server/node_modules/
 
 # Ignore environment variable files (API keys & Passwords)
 .env
 *.env
 client/.env
-backend/.env
+server/.env
 
 # Ignore build output folders
 client/dist/
