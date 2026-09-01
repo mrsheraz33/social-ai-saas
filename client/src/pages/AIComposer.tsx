@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { dummyGenerationData } from "../assets/assets"
-import { ArrowRightIcon, Loader2Icon } from "lucide-react"
+import { ArrowRightIcon, HistoryIcon, Loader2Icon } from "lucide-react"
 
 
 function AIComposer() {
@@ -35,7 +35,11 @@ const tones = [
 ];
 
 const handelGenerate = async ()=>{
-  
+setLoading(true)
+
+setTimeout(() => {
+  setLoading(false)
+}, 2000);
 }
 
   return (
@@ -68,7 +72,7 @@ const handelGenerate = async ()=>{
     <button onClick={handelGenerate}
      disabled={loading}
     className="bg-slate-900 hover:bg-slate-800 text-white flex 
-    items-center gap-2 px4 py-2 rounded-lg">
+    items-center gap-2 px-4 py-2 rounded-lg">
       {
       loading ? 
       (
@@ -86,6 +90,63 @@ const handelGenerate = async ()=>{
    
        </div>
      </div>
+
+   <div className="flex flex-wrap justify-center gap-2">
+    {tones.map((t)=> (
+      <button key={t} onClick={()=> setTone(t)}
+      className={`px-4 py-1.5 rounded-full text-sm transition-all border ${tone === t ? 
+        "bg-red-500 border-red-500 text-white":
+         "bg-white border-slate-200 text-slate-500 hover:border-slate-300"}`}>
+        {t}
+      </button>
+    ))}
+   </div>
+
+
+<div className="space-y-6 pt-12 border-t border-slate-100">
+<div className="flex items-center justify-between text-slate-600">
+  <div className="flex items-center gap-2">
+    <HistoryIcon className="size-5"/>
+    <h2 className="text-xl">Recent Generations</h2>
+  </div>
+  <span className="text-sm text-slate-500 bg-slate-50 px-2">{generations.length} total</span>
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+{generations.map((gen)=> (
+  <div key={gen._id} className="group bg-white rounded-2xl border border-slate-100
+   p-5 hover:border-red-200 transition-all relative overflow-hidden ">
+    <div className="flex flex-col h-full space-y-4">
+
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-slate-400 uppercase tracking-widest">{new Date(gen.createdAt).toLocaleString()}</span>
+        <span  className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-md">{gen.tone}</span>
+      </div>
+      
+      <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed flex-1">{gen.content}</p>
+       {gen.mediaUrl &&
+       (
+        <div className="rounded-xl overflow-hidden border border-slate-50 bg-slate-50">
+          <img src={gen.mediaUrl} alt="Gen" className="w-full acpect-video object-cover opacity-90
+          group-hover:opacity-100 transition-opacity"/>
+        </div>
+       )}
+
+
+      <div className="flex items-center gap-2 pt-2">
+        <button onClick={()=> setActiveScheduler(gen)}
+          className="flex-1 bg-slate-100 hover:bg-red-500 hover:text-white
+           text-slate-600 text-xs py-2.5 rounded-lg transition-all">
+          Schedule Post
+        </button>
+      </div>
+     
+    </div>
+  </div>
+))}
+</div>
+</div>
+
     </div>
   )
 }
