@@ -13,6 +13,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@google/genai": "^2.21.0",
+    "@huggingface/inference": "^4.13.28",
     "@zernio/node": "^0.2.692",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
