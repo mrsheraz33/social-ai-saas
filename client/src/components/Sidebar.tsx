@@ -1,5 +1,6 @@
 import { CalendarDaysIcon, LayoutDashboardIcon, LogOut, UsersIcon, Wand2Icon } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../context/authContext";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -16,14 +17,7 @@ function Sidebar({isOpen, setIsOpen}:SidebarProps) {
     {name: "AI Composer" , icon: Wand2Icon, path: "/ai-composer"}
   ]
 
-  const {logout, user} ={
-    logout: ()=>{
-      window.location.href = "/"
-    },
-
-   user: {name: "sheraz", email: "sheraz@gmail.com"}
-
-  }
+  const {logout, user} = useAuth()
 
   return (
     <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200

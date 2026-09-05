@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { MailIcon, LockIcon, ArrowRightIcon, User2Icon } from "lucide-react";
+import { useAuth } from "../context/authContext";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 export default function Login() {
     const [loginState, setLoginState] = useState(true);
@@ -8,15 +11,32 @@ export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+    const { login, isAuthenticated } = useAuth();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            window.location.href = "/dashboard";
+        }
+    }, [isAuthenticated]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => {
+
+        try {
+            const endpoint = loginState ? "/api/auth/login" : "/api/auth/register";
+            const payload = loginState ? { email, password } : { name, email, password };
+
+            const { data } = await api.post(endpoint, payload);
+
+            toast.success(loginState ? "Logged in successfully!" : "Account created!");
+            login(data.user, data.token);
+            window.location.href = "/dashboard";
+
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || error?.message || "Something went wrong");
             setLoading(false);
-            navigate("/dashboard");
-        }, 1000);
+        }
     };
 
     return (
@@ -26,38 +46,68 @@ export default function Login() {
                     <div className="flex flex-col items-center mb-8">
                         <Link to="/" className="flex items-center gap-2">
                             <img src="/logo.svg" alt="Logo" className="size-6.5" />
-                            <h1 className="text-2xl">Scheduler</h1>
+                            <h1 className="text-2xl font-semibold">Scheduler</h1>
                         </Link>
-                        <p className="text-slate-500 text-sm mt-1">Sign in to your Dashboard</p>
+                        <p className="text-slate-500 text-sm mt-1">
+                            {loginState ? "Sign in to your Dashboard" : "Create your account"}
+                        </p>
                     </div>
+
                     <form onSubmit={handleSubmit} className="space-y-5 text-sm">
                         {!loginState && (
                             <div>
-                                <label className="block mb-1.5">Name</label>
+                                <label className="block mb-1.5 font-medium text-slate-700">Name</label>
                                 <div className="relative">
                                     <User2Icon className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input type="text" required placeholder="Enter your name" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-slate-300 border border-slate-200 rounded-full" value={name} onChange={(e) => setName(e.target.value)} />
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        placeholder="Enter your name" 
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-none border border-slate-200 focus:border-red-500 rounded-full transition-all" 
+                                        value={name} 
+                                        onChange={(e) => setName(e.target.value)} 
+                                    />
                                 </div>
                             </div>
                         )}
+
                         <div>
-                            <label className="block mb-1.5">Email</label>
+                            <label className="block mb-1.5 font-medium text-slate-700">Email</label>
                             <div className="relative">
                                 <MailIcon className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input type="email" required placeholder="you@company.com" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-slate-300 border border-slate-200 rounded-full" value={email} onChange={(e) => setEmail(e.target.value)} />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block mb-1.5">Password</label>
-                            <div className="relative">
-                                <LockIcon className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input type="password" required placeholder="********" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-slate-300 border border-slate-200 rounded-full" value={password} onChange={(e) => setPassword(e.target.value)} />
+                                <input 
+                                    type="email" 
+                                    required 
+                                    placeholder="you@company.com" 
+                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-none border border-slate-200 focus:border-red-500 rounded-full transition-all" 
+                                    value={email} 
+                                    onChange={(e) => setEmail(e.target.value)} 
+                                />
                             </div>
                         </div>
 
-                        <button type="submit" disabled={loading} className="w-full py-2.5 px-4 bg-linear-to-r from-red-600 to-red-500 text-white rounded-full text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                        <div>
+                            <label className="block mb-1.5 font-medium text-slate-700">Password</label>
+                            <div className="relative">
+                                <LockIcon className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input 
+                                    type="password" 
+                                    required 
+                                    placeholder="••••••••" 
+                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 outline-none border border-slate-200 focus:border-red-500 rounded-full transition-all" 
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)} 
+                                />
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={loading} 
+                            className="w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-red-500 text-white font-medium rounded-full text-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        >
                             {loading ? (
-                                "Signing in..."
+                                "Please wait..."
                             ) : (
                                 <>
                                     {loginState ? "Sign In" : "Sign Up"} <ArrowRightIcon className="size-4" />
@@ -70,14 +120,22 @@ export default function Login() {
                         {loginState ? (
                             <>
                                 Don't have an account?{" "}
-                                <button onClick={() => setLoginState(false)} className="text-red-600 hover:text-red-700">
+                                <button 
+                                    type="button"
+                                    onClick={() => setLoginState(false)} 
+                                    className="text-red-600 font-medium hover:text-red-700 cursor-pointer"
+                                >
                                     Create one free
                                 </button>
                             </>
                         ) : (
                             <>
                                 Already have an account?{" "}
-                                <button onClick={() => setLoginState(true)} className="text-red-600 hover:text-red-700">
+                                <button 
+                                    type="button"
+                                    onClick={() => setLoginState(true)} 
+                                    className="text-red-600 font-medium hover:text-red-700 cursor-pointer"
+                                >
                                     Sign In
                                 </button>
                             </>

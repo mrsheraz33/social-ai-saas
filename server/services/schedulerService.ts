@@ -68,7 +68,7 @@ export const initScheduler = (): void => {
    }
       }
 
-if (postsToPublish.length === 0) {
+if (postsToPublish.length >  0) {
     console.log(`${postsToPublish.length}`)
 }
 
