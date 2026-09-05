@@ -6,6 +6,8 @@ import authRouter from "./routes/authRoute.js";
 import socialAuthRoutes from "./routes/socialAuthRoutes.js";
 import accountRouter from "./routes/accountRoutes.js";
 import postRouter from "./routes/postRoutes.js";
+import activityRouter from "./routes/activityRoutes.js";
+import { initScheduler } from "./services/schedulerService.js";
 
 
 const app = express();
@@ -24,6 +26,7 @@ app.use("/api/auth", authRouter)
 app.use("/api/oauth", socialAuthRoutes)
 app.use("/api/accounts", accountRouter)
 app.use("/api/posts", postRouter)
+app.use("/api/activity", activityRouter)
 
 // Global Error Handler Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -37,5 +40,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 app.listen(port, () => {
       connectDB()
+      initScheduler()
     console.log(`Server is running at http://localhost:${port}`);
 });
