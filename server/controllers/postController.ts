@@ -4,6 +4,7 @@ import { InferenceClient } from "@huggingface/inference";
 import { Generation } from "../models/Generation.js";
 import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { cloudinary } from "../config/cloudinary.js";
+import { Post } from "../models/Post.js";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -113,6 +114,83 @@ export const getGenerations = async (
     });
 
     res.status(200).json(generations);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPost = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+
+    const posts = await Generation.findOne({
+      user: req.user._id,
+    });
+
+    if (!posts) {
+      res.status(404).json({
+        success: false,
+        message: "Posts not found",
+      });
+      return;
+    }
+
+    res.status(200).json(posts);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const schedulePost = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { content, platforms, scheduledFor, status } = req.body;
+
+    let parsePlatforms = platforms
+    if(typeof platforms === "string"){
+      try {
+        parsePlatforms = JSON.parse(platforms)
+      } catch (e) {
+        parsePlatforms = platforms.split(",").map((p: string) => p.trim());
+      }
+    }
+
+    let mediaUrl: string | undefined = req.body.mediaUrl
+    let mediaType: "image" | "video" | undefined = req.body.mediaType
+
+    if(req.file){
+      const result = await new Promise<any>((resolve, reject)=>{
+        const stream = cloudinary.uploader.upload_stream({
+          resource_type : "auto",
+          folder: "saas_social_posts",
+        },
+      (error, result)=>{
+        if(error) reject(error)
+        else resolve(result)
+      })
+      stream.end(req.file!.buffer)
+      })
+     mediaUrl = result.secure_url
+     mediaType = result.resource_type === "video" ? "video" : "image"
+    }
+
+    const post = await Post.create({
+      user: req.user._id,
+      content,
+      platforms:parsePlatforms,
+      mediaUrl,
+      mediaType,
+      scheduledFor,
+      status,
+    });
+    
+    res.status(201).json(post);
   } catch (error) {
     next(error);
   }
