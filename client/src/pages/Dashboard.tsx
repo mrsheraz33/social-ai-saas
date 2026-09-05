@@ -1,6 +1,6 @@
 import { ActivityIcon, CheckCircle, ClockIcon, SendIcon, Share2Icon, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
-import { dummyAccountsData, dummyActivityData, dummyPostsData } from "../assets/assets";
+import api from "../api/axios";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 function Dashboard() {
@@ -15,11 +15,8 @@ function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         // Backend API mock
-        const [postsRes, accountsRes, activityRes] = [
-          { data: dummyPostsData },
-          { data: dummyAccountsData },
-          { data: dummyActivityData },
-        ];
+        const [postsRes, accountsRes, activityRes] = await Promise.all([api.get("/api/post")
+          , api.get("/api/accounts"), api.get("/api/activity")])
 
         const posts = postsRes.data;
         setStats({
