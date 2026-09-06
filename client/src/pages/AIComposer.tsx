@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
-import { dummyGenerationData, PLATFORMS } from "../assets/assets"
+import { PLATFORMS } from "../assets/assets"
 import { ArrowRightIcon, Calendar1Icon, Clock1Icon, HistoryIcon, Loader2Icon, TimerIcon, WandIcon, XIcon } from "lucide-react"
-
+import api from "../api/axios"
+import toast from "react-hot-toast"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function AIComposer() {
   const [prompt, setPrompt] = useState("")
   const [tone, setTone] = useState("Professional")
@@ -16,13 +18,26 @@ function AIComposer() {
 
   const [scheduling, setScheduling] = useState(false)
 
-  const fetchGenerations = async () => {
-    setGenerations(dummyGenerationData)
-  }
-
   useEffect(() => {
-    fetchGenerations()
-  }, [])
+    let isMounted = true;
+
+    const fetchGenerations = async () => {
+      try {
+        const { data } = await api.get("/api/posts/generations");
+        if (isMounted) {
+          setGenerations(data);
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || error.message);
+      }
+    };
+
+    fetchGenerations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const tones = [
     "Professional",
@@ -33,23 +48,60 @@ function AIComposer() {
   ]
 
   const handleGenerate = async () => {
+    if (!prompt) {
+      toast.error("Please enter a prompt")
+      return
+    }
     setLoading(true)
 
-    setTimeout(() => {
+    try {
+      const { data } = await api.post("/api/posts/generate", { prompt, tone, generateImage })
+      // Response Data 'data.data' format check Karein
+      const generationData = data.data || data;
+      setGenerations((prev) => [generationData, ...prev])
+      setActiveScheduler(generationData)
+      toast.success("Content generated successfully!")
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Generation failed. Ensure route exists.")
+    } finally {
       setLoading(false)
-    }, 2000)
+    }
   }
 
   const handleSchedule = async () => {
-    setScheduling(true)
+    if (!activeScheduler) return
+    if (selectedPlatforms.length === 0) {
+      toast.error("Select at least one platform")
+      return
+    }
 
-    setTimeout(() => {
-      setScheduling(false)
+    if (!scheduledDate || !scheduledTime) {
+      toast.error("Please select both date and time")
+      return
+    }
+
+    const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
+    setScheduling(true)
+    
+    try {
+      await api.post("/api/posts", {
+        content: activeScheduler.content,
+        mediaUrl: activeScheduler.mediaUrl,
+        mediaType: activeScheduler.mediaType,
+        platforms: selectedPlatforms,
+        scheduledFor,
+        status: "scheduled"
+      });
+      toast.success("AI Post scheduled successfully!");
       setActiveScheduler(null)
-      setSelectedPlatforms([])
-      setScheduledDate("")
-      setScheduledTime("")
-    }, 2000)
+      setScheduledDate("");
+      setScheduledTime("");
+      setSelectedPlatforms([]);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setScheduling(false);
+    }
   }
 
   return (
@@ -82,7 +134,7 @@ function AIComposer() {
             type="button"
             onClick={handleGenerate}
             disabled={loading}
-            className="bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -274,7 +326,7 @@ function AIComposer() {
                 type="button"
                 onClick={handleSchedule} 
                 disabled={scheduling}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-md bg-slate-900 text-white hover:bg-red-500 transition-colors font-medium text-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-md bg-slate-900 text-white hover:bg-red-500 transition-colors font-medium text-sm disabled:opacity-50"
               >
                 {scheduling ? (
                   <>

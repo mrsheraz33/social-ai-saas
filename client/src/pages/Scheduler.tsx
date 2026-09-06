@@ -1,64 +1,111 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react"
-import { dummyPostsData, PLATFORMS } from "../assets/assets"
-import { ArrowRight, Calendar1Icon, CalendarDaysIcon, SendIcon, XIcon } from "lucide-react"
-import toast from "react-hot-toast"
-import api from "../api/axios"
+import { useEffect, useState, useCallback } from "react";
+import { PLATFORMS } from "../assets/assets";
+import { ArrowRight, Calendar1Icon, CalendarDaysIcon, SendIcon, XIcon } from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../api/axios";
 
 function Scheduler() {
-  const [posts, setPosts] = useState<any[]>([])
-  const [content, setContent] = useState("")
-  const [scheduledDate, setScheduledDate] = useState("")
-  const [scheduledTime, setScheduledTime] = useState("")
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
-  const [mediaFile, setMediaFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [posts, setPosts] = useState<any[]>([]);
+  const [content, setContent] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
-const fetchPosts = async ()=>{
+  // useCallback keeps the reference stable
+  const fetchPosts = useCallback(async () => {
     try {
-      const {data} = await api.get("/api/posts")
-      setPosts(data)
+      const response = await api.get("/api/posts");
+      const data = response.data;
+      const fetchedPosts = Array.isArray(data) ? data : data?.posts || [];
+      setPosts(fetchedPosts);
     } catch (error: any) {
-       toast.error(error.response?.data?.message || error?.message );
+      toast.error(error.response?.data?.message || error?.message);
     }
-}
+  }, []);
 
   useEffect(() => {
-(async ()=> await fetchPosts())()
-const interval = setInterval(async ()=> await fetchPosts(), 10000)
-return ()=> clearInterval(interval)
-  }, [])
+    let isMounted = true;
 
-  const scheduled = posts.filter((p) => p.status === "scheduled")
-  const published = posts.filter((p) => p.status === "published")
+    const loadInitialPosts = async () => {
+      try {
+        const response = await api.get("/api/posts");
+        if (isMounted) {
+          const data = response.data;
+          const fetchedPosts = Array.isArray(data) ? data : data?.posts || [];
+          setPosts(fetchedPosts);
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          toast.error(error.response?.data?.message || error?.message);
+        }
+      }
+    };
+
+    loadInitialPosts();
+
+    const interval = setInterval(() => {
+      fetchPosts();
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [fetchPosts]);
+
+  const scheduled = posts.filter((p) => p.status === "scheduled");
+  const published = posts.filter((p) => p.status === "published");
 
   const togglePlatform = (id: string) => {
     setSelectedPlatforms((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    )
-  }
+    );
+  };
 
   const handleSchedule = async (e: React.FormEvent) => {
-    e.preventDefault()
-   if(selectedPlatforms.length === 0){
-    toast.error("select at least one platform")
-    return
-   }
-   if(!scheduledDate || !scheduledTime){
-    toast.error("select data and time")
-    return
-   }
-   if(selectedPlatforms.includes("instagram") && !mediaFile){
-     toast.error("Instagram requires an iamge or video")
-    return
-   }
+    e.preventDefault();
+    if (selectedPlatforms.length === 0) {
+      toast.error("Select at least one platform");
+      return;
+    }
+    if (!scheduledDate || !scheduledTime) {
+      toast.error("Select date and time");
+      return;
+    }
 
-   const scheduleFor = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
-  }
+    const scheduleFor = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+    const formData = new FormData();
+    formData.append("content", content);
+    formData.append("scheduledFor", scheduleFor);
+    formData.append("status", "scheduled");
+    formData.append("platforms", JSON.stringify(selectedPlatforms));
+    if (mediaFile) formData.append("media", mediaFile);
+
+    setLoading(true);
+
+    try {
+      await api.post("/api/posts", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Post scheduled successfully!");
+      setContent("");
+      setScheduledDate("");
+      setScheduledTime("");
+      setSelectedPlatforms([]);
+      setMediaFile(null);
+      fetchPosts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-full">
-      {/* Left Column: Form */}
       <div className="w-full lg:w-115 shrink-0">
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center gap-2 mb-6">
@@ -70,7 +117,7 @@ return ()=> clearInterval(interval)
               <label className="block text-xs text-slate-500 uppercase mb-2">Platforms</label>
               <div className="flex flex-wrap gap-3">
                 {PLATFORMS.map((p) => {
-                  const active = selectedPlatforms.includes(p.id)
+                  const active = selectedPlatforms.includes(p.id);
                   return (
                     <button
                       key={p.id}
@@ -84,7 +131,7 @@ return ()=> clearInterval(interval)
                     >
                       <p.icon className="size-4.5" />
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -99,7 +146,6 @@ return ()=> clearInterval(interval)
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
-
               <div
                 className={`text-right text-xs mt-1 font-medium ${
                   content.length > 270 ? "text-red-500" : "text-slate-400"
@@ -126,7 +172,6 @@ return ()=> clearInterval(interval)
                       controls
                     />
                   )}
-
                   <button
                     type="button"
                     onClick={() => setMediaFile(null)}
@@ -199,9 +244,7 @@ return ()=> clearInterval(interval)
         </div>
       </div>
 
-      {/* Right Column: Scheduled & Published Feeds */}
       <div className="flex-1 flex flex-col gap-6 min-w-0">
-        {/* Upcoming Section */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <CalendarDaysIcon className="size-4 text-zinc-500" />
@@ -216,12 +259,12 @@ return ()=> clearInterval(interval)
               <div className="py-10 text-center text-slate-400 text-sm">No posts scheduled yet.</div>
             ) : (
               scheduled.map((post) => (
-                <div key={post._id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                <div key={post._id || post.id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex gap-1.5 items-center">
-                      {post.platforms.map((pl: string) => {
-                        const meta = PLATFORMS.find((p) => p.id === pl)
-                        return meta ? <meta.icon key={pl} className="size-3.5" /> : null
+                      {(post.platforms || []).map((pl: string) => {
+                        const meta = PLATFORMS.find((p) => p.id === pl);
+                        return meta ? <meta.icon key={pl} className="size-3.5" /> : null;
                       })}
                     </div>
 
@@ -241,7 +284,6 @@ return ()=> clearInterval(interval)
           </div>
         </div>
 
-        {/* Published Section */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100">
             <SendIcon className="size-4 text-zinc-500" />
@@ -256,12 +298,12 @@ return ()=> clearInterval(interval)
               <div className="py-10 text-center text-slate-400 text-sm">No published posts yet.</div>
             ) : (
               published.map((post) => (
-                <div key={post._id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                <div key={post._id || post.id} className="px-5 py-4 hover:bg-slate-50/60 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex gap-1.5 items-center">
-                      {post.platforms.map((pl: string) => {
-                        const meta = PLATFORMS.find((p) => p.id === pl)
-                        return meta ? <meta.icon key={pl} className="size-3.5" /> : null
+                      {(post.platforms || []).map((pl: string) => {
+                        const meta = PLATFORMS.find((p) => p.id === pl);
+                        return meta ? <meta.icon key={pl} className="size-3.5" /> : null;
                       })}
                     </div>
 
@@ -271,7 +313,7 @@ return ()=> clearInterval(interval)
                           {post.mediaType}
                         </span>
                       )}
-                      <span>{new Date(post.updatedAt).toLocaleString()}</span>
+                      <span>{new Date(post.updatedAt || post.scheduledFor).toLocaleString()}</span>
                       <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full font-medium">
                         Published
                       </span>
@@ -285,7 +327,7 @@ return ()=> clearInterval(interval)
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Scheduler
+export default Scheduler;

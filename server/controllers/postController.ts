@@ -28,9 +28,8 @@ export const generatePost = async (
       return;
     }
 
-    
     const systemInstruction = `You are an expert social media manager.
-     Create engaging content for social media based on the user request.
+      Create engaging content for social media based on the user request.
       Keep the tone ${tone}. Add relevant hashtags and emojis.
     Return ONLY a raw valid JSON object with no markdown backticks using this structure:
 {
@@ -39,7 +38,7 @@ export const generatePost = async (
 }`;
 
     const interaction = await ai.interactions.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       input: `${systemInstruction}\n\nTopic/Prompt: ${prompt}`,
     });
 
@@ -52,7 +51,7 @@ export const generatePost = async (
       const data = jsonMatch
         ? JSON.parse(jsonMatch[0])
         : { content: rawText, imagePrompt: prompt };
-        
+
       content = data.content || rawText;
       imagePrompt = data.imagePrompt || prompt;
     } catch (e) {
@@ -66,7 +65,7 @@ export const generatePost = async (
       try {
         const imageBlob = (await hf.textToImage({
           model: "black-forest-labs/FLUX.1-schnell",
-          inputs: imagePrompt, 
+          inputs: imagePrompt,
         })) as unknown as Blob;
 
         const arrayBuffer = await imageBlob.arrayBuffer();
@@ -100,7 +99,7 @@ export const generatePost = async (
   } catch (error) {
     next(error);
   }
-}
+};
 
 export const getGenerations = async (
   req: AuthRequest,
@@ -108,7 +107,6 @@ export const getGenerations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
- 
     const generations = await Generation.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
@@ -125,18 +123,10 @@ export const getPost = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-
-    const posts = await Generation.findOne({
+    // FIXED: Query Post collection and return array
+    const posts = await Post.find({
       user: req.user._id,
-    });
-
-    if (!posts) {
-      res.status(404).json({
-        success: false,
-        message: "Posts not found",
-      });
-      return;
-    }
+    }).sort({ createdAt: -1 });
 
     res.status(200).json(posts);
   } catch (error) {
@@ -152,44 +142,46 @@ export const schedulePost = async (
   try {
     const { content, platforms, scheduledFor, status } = req.body;
 
-    let parsePlatforms = platforms
-    if(typeof platforms === "string"){
+    let parsePlatforms = platforms;
+    if (typeof platforms === "string") {
       try {
-        parsePlatforms = JSON.parse(platforms)
+        parsePlatforms = JSON.parse(platforms);
       } catch (e) {
         parsePlatforms = platforms.split(",").map((p: string) => p.trim());
       }
     }
 
-    let mediaUrl: string | undefined = req.body.mediaUrl
-    let mediaType: "image" | "video" | undefined = req.body.mediaType
+    let mediaUrl: string | undefined = req.body.mediaUrl;
+    let mediaType: "image" | "video" | undefined = req.body.mediaType;
 
-    if(req.file){
-      const result = await new Promise<any>((resolve, reject)=>{
-        const stream = cloudinary.uploader.upload_stream({
-          resource_type : "auto",
-          folder: "saas_social_posts",
-        },
-      (error, result)=>{
-        if(error) reject(error)
-        else resolve(result)
-      })
-      stream.end(req.file!.buffer)
-      })
-     mediaUrl = result.secure_url
-     mediaType = result.resource_type === "video" ? "video" : "image"
+    if (req.file) {
+      const result = await new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "auto",
+            folder: "saas_social_posts",
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file!.buffer);
+      });
+      mediaUrl = result.secure_url;
+      mediaType = result.resource_type === "video" ? "video" : "image";
     }
 
     const post = await Post.create({
       user: req.user._id,
       content,
-      platforms:parsePlatforms,
+      platforms: parsePlatforms,
       mediaUrl,
       mediaType,
       scheduledFor,
-      status,
+      status: status || "scheduled",
     });
-    
+
     res.status(201).json(post);
   } catch (error) {
     next(error);
