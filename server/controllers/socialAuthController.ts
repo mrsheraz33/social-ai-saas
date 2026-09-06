@@ -6,20 +6,31 @@ import { Request, Response, NextFunction } from "express";
 
 const getOrCreateZernioProfile = async (user: any): Promise<string> => {
   try {
+    // 1. Check if user already has a saved profile ID
+    if (user.zerniProfileId) {
+      return user.zerniProfileId;
+    }
+
     const result = await zernio.profiles.listProfiles();
     const data = result.data as any;
     const profiles: any[] = Array.isArray(data)
       ? data
       : data?.profiles || data?.data || [];
 
-    if (profiles.length > 0) {
-      const pid = profiles[0]._id || profiles[0].id;
+    // 2. Find profile matching user's ID or Email, else take/create one
+    const userProfile = profiles.find(
+      (p) => p.name === `${user.name || user.email}'s workspace` || p.name === user.email
+    );
+
+    if (userProfile) {
+      const pid = userProfile._id || userProfile.id;
       await User.findByIdAndUpdate(user._id, { zerniProfileId: pid });
       return pid;
     }
 
+    // 3. Create a unique profile for THIS user if not found
     const createdResult = await zernio.profiles.createProfile({
-      body: { name: `${user.name || user.email}s workspace` } as any,
+      body: { name: `${user.name || user.email}'s workspace` } as any,
     });
 
     const created = (createdResult.data as any)?.profile || createdResult.data;
@@ -57,7 +68,7 @@ export const generateConnectUrl = async (
       },
     });
 
-    const authUrl = result.data.authUrl;
+    const authUrl = result.data?.authUrl || (result.data as any)?.url;
 
     if (!authUrl) {
       throw new Error("Failed to generate connect URL from Zernio");
@@ -79,31 +90,38 @@ export const syncAccounts = async (
 ): Promise<void> => {
   try {
     const profileId = await getOrCreateZernioProfile(req.user);
+    
+    console.log("--> Current User ID:", req.user._id);
+    console.log("--> Zernio Profile ID being queried:", profileId);
+
     const result = await zernio.accounts.listAccounts({
       query: { profileId } as any,
     });
 
-    const zernioAccounts: any[] = result.data?.accounts || [];
-    const supportedPlatforms = ["facebook", "instagram", "linkedin", "twitter"];
+    console.log("--> RAW ZERNIO RESPONSE:", JSON.stringify(result.data, null, 2));
+
+    const rawData = result.data as any;
+    const zernioAccounts: any[] = Array.isArray(rawData)
+      ? rawData
+      : rawData?.accounts || rawData?.data || [];
+
+    console.log("--> Extracted Zernio Accounts Count:", zernioAccounts.length);
+
+    const supportedPlatforms = ["facebook", "instagram", "linkedin", "twitter", "x"];
     const syncedAccounts = [];
 
     for (const zAccount of zernioAccounts) {
-      const zid = zAccount._id || zAccount.id;
-      if (!zid) {
-        console.warn("Skipping account with no id:", zAccount);
-        continue;
-      }
+      console.log("--> Processing Zernio Account Item:", zAccount);
 
-      const rawPlatform = (
-        zAccount.platform ||
-        zAccount.type ||
-        ""
-      ).toLowerCase();
-      const normalizedPlatform = supportedPlatforms.find((p) =>
-        rawPlatform.includes(p),
-      );
+      const zid = zAccount._id || zAccount.id;
+      if (!zid) continue;
+
+      const rawPlatform = (zAccount.platform || zAccount.type || zAccount.provider || "").toLowerCase();
+      let normalizedPlatform = supportedPlatforms.find((p) => rawPlatform.includes(p));
+      if (normalizedPlatform === "x") normalizedPlatform = "twitter";
+
       if (!normalizedPlatform) {
-        console.log(`Skiping unsupported platform: ${rawPlatform}`);
+        console.log("--> Unsupported platform found:", rawPlatform);
         continue;
       }
 
@@ -112,18 +130,15 @@ export const syncAccounts = async (
         {
           user: req.user._id,
           platform: normalizedPlatform,
-          handle:
-            zAccount.handle || zAccount.username || zAccount.name || "Unknown",
+          handle: zAccount.handle || zAccount.username || zAccount.name || "LinkedIn User",
           zernioAccountId: zid,
           status: "connected",
-          avatarUrl:
-            zAccount.avatarUrl ||
-            zAccount.picture ||
-            zAccount.profile_image_url ||
-            "",
+          avatarUrl: zAccount.avatarUrl || zAccount.picture || "",
         },
-        { upsert: true, new: true },
+        { upsert: true, new: true }
       );
+
+      console.log("--> SAVED TO MONGO DB SUCCESS:", account);
       syncedAccounts.push(account);
     }
 
@@ -134,6 +149,7 @@ export const syncAccounts = async (
       count: syncedAccounts.length,
     });
   } catch (error) {
+    console.error("--> SYNC ERROR CATCH BLOCK:", error);
     next(error);
   }
 };

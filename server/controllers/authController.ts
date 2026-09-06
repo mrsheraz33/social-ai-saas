@@ -45,11 +45,12 @@ export const registerUser = async (
     res.status(201).json({
       success: true,
       message: "User registered successfully",
+      token: token,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        token: token
+        
       },
     });
   } catch (error) {
@@ -90,13 +91,14 @@ export const loginUser = async (
     res.status(200).json({
       success: true,
       message: "Logged in successfully",
+      token:token,
+      
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        token:token,
-      },
-    });
+      
+    }});
   } catch (error) {
     next(error);
   }

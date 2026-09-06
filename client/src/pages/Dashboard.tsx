@@ -14,18 +14,44 @@ function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Backend API mock
-        const [postsRes, accountsRes, activityRes] = await Promise.all([api.get("/api/post")
-          , api.get("/api/accounts"), api.get("/api/activity")])
+        // Safe Promise Handling (Taake 1 Endpoint Fail Hone Par Sab Crash Na Ho)
+        const [postsRes, accountsRes, activityRes] = await Promise.allSettled([
+          api.get("/api/posts"),
+          api.get(`/api/accounts?t=${Date.now()}`),
+          api.get("/api/activity")
+        ]);
 
-        const posts = postsRes.data;
+        // 1. Process Posts Response
+        let scheduledCount = 0;
+        let publishedCount = 0;
+        if (postsRes.status === "fulfilled") {
+          const rawPosts = postsRes.value.data;
+          const posts = Array.isArray(rawPosts) ? rawPosts : rawPosts?.posts || [];
+          scheduledCount = posts.filter((p: any) => p.status === "scheduled").length;
+          publishedCount = posts.filter((p: any) => p.status === "published").length;
+        }
+
+        // 2. Process Accounts Response (FIXED ARRAY EXTRACTION)
+        let accountsCount = 0;
+        if (accountsRes.status === "fulfilled") {
+          const rawAccs = accountsRes.value.data;
+          const accounts = Array.isArray(rawAccs) ? rawAccs : rawAccs?.accounts || [];
+          // Count active or all returned accounts
+          accountsCount = accounts.filter((a: any) => a.status === "connected" || !a.status).length;
+        }
+
         setStats({
-          scheduled: posts.filter((p: any) => p.status === "scheduled").length,
-          published: posts.filter((p: any) => p.status === "published").length,
-          connectedAccount: accountsRes.data.filter((a: any) => a.status === "connected").length,
+          scheduled: scheduledCount,
+          published: publishedCount,
+          connectedAccount: accountsCount,
         });
 
-        setActivities(activityRes.data);
+        // 3. Process Activity Response
+        if (activityRes.status === "fulfilled") {
+          const rawAct = activityRes.value.data;
+          setActivities(Array.isArray(rawAct) ? rawAct : rawAct?.activities || []);
+        }
+
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
       }
@@ -39,7 +65,7 @@ function Dashboard() {
       label: "Scheduled Posts",
       value: stats.scheduled,
       icon: ClockIcon,
-      trend: "+2 today",
+      trend: "+0 today",
     },
     {
       label: "Published Posts",
