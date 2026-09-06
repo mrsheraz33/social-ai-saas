@@ -71,10 +71,12 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 # Social Automation
 ZERNIO_API_KEY=your_zernio_api_key
 
+---
+
 ## Author
 
 **Muhammad Sheraz**  
 Full Stack AI Engineer  
 
-- **GitHub:** [github.com/mrsheraz33](https://github.com/mrsheraz33)  
-- **LinkedIn:** [linkedin.com/in/muhammad-sheraz-858612385](https://www.linkedin.com/in/muhammad-sheraz-858612385/)
+- GitHub: https://github.com/mrsheraz33
+- LinkedIn: https://www.linkedin.com/in/muhammad-sheraz-858612385
