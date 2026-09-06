@@ -59,7 +59,7 @@ Create a `.env` file in the `server/` root directory with the following variable
 PORT=3000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
-CLIENT_URL=https://social-ai-saas-red.vercel.app
+CLIENT_URL=http://localhost:5173
 
 # AI & Media Services
 GEMINI_API_KEY=your_gemini_api_key
@@ -70,3 +70,11 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 # Social Automation
 ZERNIO_API_KEY=your_zernio_api_key
+
+## Author
+
+**Muhammad Sheraz**  
+Full Stack AI Engineer  
+
+- **GitHub:** [github.com/mrsheraz33](https://github.com/mrsheraz33)  
+- **LinkedIn:** [linkedin.com/in/muhammad-sheraz-858612385](https://www.linkedin.com/in/muhammad-sheraz-858612385/)
