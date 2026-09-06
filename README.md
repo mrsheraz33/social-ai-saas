@@ -71,12 +71,11 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 # Social Automation
 ZERNIO_API_KEY=your_zernio_api_key
 
----
+```markdown
+## 👨‍💻 Author
 
-## Author
+[![GitHub](https://img.shields.io/badge/GitHub-mrsheraz33-181717?style=for-the-badge&logo=github)](https://github.com/mrsheraz33)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Muhammad%20Sheraz-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/muhammad-sheraz-858612385/)
 
 **Muhammad Sheraz**  
-Full Stack AI Engineer  
-
-- GitHub: https://github.com/mrsheraz33
-- LinkedIn: https://www.linkedin.com/in/muhammad-sheraz-858612385
+Full Stack AI Engineer
