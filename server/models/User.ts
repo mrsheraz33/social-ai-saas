@@ -17,6 +17,7 @@ const userSchema = new Schema(
     password: {
       type: String,
       required: false,
+      select: false,
     },
     zerniProfileId: {
       type: String,

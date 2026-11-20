@@ -56,4 +56,6 @@ const accountSchema = new Schema(
   }
 );
 
+accountSchema.index({ user: 1, zernioAccountId: 1 }, { unique: true, sparse: true });
+
 export const Account = model("Account", accountSchema);

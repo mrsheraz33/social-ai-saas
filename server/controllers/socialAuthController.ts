@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/authMiddleware.js";
 import { Account } from "../models/Account.js";
 import { User } from "../models/User.js";
 import { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 
 const getOrCreateZernioProfile = async (user: any): Promise<string> => {
   try {
@@ -54,6 +55,7 @@ export const generateConnectUrl = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const { platform } = req.params;
     const profileId = await getOrCreateZernioProfile(req.user);
 
@@ -89,57 +91,53 @@ export const syncAccounts = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const profileId = await getOrCreateZernioProfile(req.user);
-    
-    console.log("--> Current User ID:", req.user._id);
-    console.log("--> Zernio Profile ID being queried:", profileId);
 
     const result = await zernio.accounts.listAccounts({
       query: { profileId } as any,
     });
-
-    console.log("--> RAW ZERNIO RESPONSE:", JSON.stringify(result.data, null, 2));
 
     const rawData = result.data as any;
     const zernioAccounts: any[] = Array.isArray(rawData)
       ? rawData
       : rawData?.accounts || rawData?.data || [];
 
-    console.log("--> Extracted Zernio Accounts Count:", zernioAccounts.length);
-
     const supportedPlatforms = ["facebook", "instagram", "linkedin", "twitter", "x"];
-    const syncedAccounts = [];
+    const syncedAccounts: any[] = [];
+    const session = await mongoose.startSession();
 
-    for (const zAccount of zernioAccounts) {
-      console.log("--> Processing Zernio Account Item:", zAccount);
+    try {
+      session.startTransaction();
+      for (const zAccount of zernioAccounts) {
+        const zid = zAccount._id || zAccount.id;
+        if (!zid) continue;
 
-      const zid = zAccount._id || zAccount.id;
-      if (!zid) continue;
+        const rawPlatform = (zAccount.platform || zAccount.type || zAccount.provider || "").toLowerCase();
+        let normalizedPlatform = supportedPlatforms.find((p) => rawPlatform.includes(p));
+        if (normalizedPlatform === "x") normalizedPlatform = "twitter";
+        if (!normalizedPlatform) continue;
 
-      const rawPlatform = (zAccount.platform || zAccount.type || zAccount.provider || "").toLowerCase();
-      let normalizedPlatform = supportedPlatforms.find((p) => rawPlatform.includes(p));
-      if (normalizedPlatform === "x") normalizedPlatform = "twitter";
-
-      if (!normalizedPlatform) {
-        console.log("--> Unsupported platform found:", rawPlatform);
-        continue;
+        const account = await Account.findOneAndUpdate(
+          { zernioAccountId: zid },
+          {
+            user: req.user._id,
+            platform: normalizedPlatform,
+            handle: zAccount.handle || zAccount.username || zAccount.name || "LinkedIn User",
+            zernioAccountId: zid,
+            status: "connected",
+            avatarUrl: zAccount.avatarUrl || zAccount.picture || "",
+          },
+          { upsert: true, new: true, session }
+        );
+        syncedAccounts.push(account);
       }
-
-      const account = await Account.findOneAndUpdate(
-        { zernioAccountId: zid },
-        {
-          user: req.user._id,
-          platform: normalizedPlatform,
-          handle: zAccount.handle || zAccount.username || zAccount.name || "LinkedIn User",
-          zernioAccountId: zid,
-          status: "connected",
-          avatarUrl: zAccount.avatarUrl || zAccount.picture || "",
-        },
-        { upsert: true, new: true }
-      );
-
-      console.log("--> SAVED TO MONGO DB SUCCESS:", account);
-      syncedAccounts.push(account);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
 
     res.status(200).json({
@@ -149,7 +147,6 @@ export const syncAccounts = async (
       count: syncedAccounts.length,
     });
   } catch (error) {
-    console.error("--> SYNC ERROR CATCH BLOCK:", error);
     next(error);
   }
 };

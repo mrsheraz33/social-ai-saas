@@ -4,9 +4,9 @@ import { User } from "../models/User.js";
 import jwt from "jsonwebtoken";
 
 export const generateToken = (id: string): string => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "fallback_secret_key", {
-    expiresIn: "7d", 
-  });
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is not defined in environment");
+  return jwt.sign({ id }, secret, { expiresIn: "7d" });
 };
 
 // registerUser user
@@ -74,7 +74,7 @@ export const loginUser = async (
       return;
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user || !user.password) {
       res.status(401).json({ success: false, message: "Invalid email or password" });
       return;

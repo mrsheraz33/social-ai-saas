@@ -10,7 +10,7 @@ const activityLogSchema = new Schema(
     actionType: {
       type: String,
       required: true,
-      enum: ["post_published", "ai_reply"],
+      enum: ["POST_PUBLISHED", "AI_REPLY"],
     },
     description: {
       type: String,

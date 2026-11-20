@@ -45,10 +45,18 @@ const postSchema = new Schema(
       enum: ["draft", "scheduled", "published", "failed"],
       default: "scheduled",
     },
+    retries: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
   },
 );
+
+postSchema.index({ status: 1, scheduledFor: 1 });
+postSchema.index({ user: 1, createdAt: -1 });
 
 export const Post = model("Post", postSchema);

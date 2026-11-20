@@ -8,6 +8,8 @@ import img_2 from "./img-2.jpg";
 import img_3 from "./img-3.jpg";
 import img_4 from "./img-4.jpg";
 
+const isDev = import.meta.env.DEV;
+
 const LinkedInIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" {...props}>
         <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -28,7 +30,7 @@ export const PLATFORMS: Platform[] = [
     { id: "instagram", name: "Instagram", icon: SiInstagram, description: "Share photos, reels and stories" },
 ];
 
-export const dummyPostsData: any = [
+export const dummyPostsData: any = isDev ? [
     {
         _id: "69fd98f4a59dd584d3587a1e",
         user: "69fd96aea59dd584d3587a1d",
@@ -137,9 +139,9 @@ export const dummyPostsData: any = [
         createdAt: "2026-05-19T12:09:24.729Z",
         updatedAt: "2026-05-19T12:09:24.729Z",
     },
-];
+] : [];
 
-export const dummyAccountsData = [
+export const dummyAccountsData = isDev ? [
     {
         _id: "6a04390528a41877988d1a05",
         zernioAccountId: "6a0439025e333c05295abae1",
@@ -160,9 +162,9 @@ export const dummyAccountsData = [
         updatedAt: "2026-05-19T11:15:04.799Z",
         user: "69fd96aea59dd584d3587a1d",
     },
-];
+] : [];
 
-export const dummyActivityData = [
+export const dummyActivityData = isDev ? [
     {
         _id: "6a0c472aa6bca2a802e1d490",
         user: "69fd96aea59dd584d3587a1d",
@@ -248,9 +250,9 @@ export const dummyActivityData = [
         createdAt: "2026-05-08T08:05:02.602Z",
         updatedAt: "2026-05-08T08:05:02.602Z",
     },
-];
+] : [];
 
-export const dummyGenerationData = [
+export const dummyGenerationData = isDev ? [
     {
         _id: "6a043e87d7bb966a9a9a6de0",
         user: "69fd96aea59dd584d3587a1d",
@@ -354,4 +356,4 @@ export const dummyGenerationData = [
         createdAt: "2026-05-11T11:54:05.629Z",
         updatedAt: "2026-05-11T11:54:05.629Z",
     },
-];
+] : [];

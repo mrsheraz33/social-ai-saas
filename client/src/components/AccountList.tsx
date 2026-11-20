@@ -10,10 +10,10 @@ interface AccountListProps {
 
 const AccountList = ({ accounts, onDisconnect }: AccountListProps) => {
   const handleDisconnect = async (accountId: string) => {
-    const confirm = window.confirm(
+    const isConfirmed = window.confirm(
       "Are you sure you want to disconnect this account?",
     );
-    if (!confirm) return;
+    if (!isConfirmed) return;
     await onDisconnect(accountId);
   };
 
@@ -41,7 +41,7 @@ const AccountList = ({ accounts, onDisconnect }: AccountListProps) => {
 
         return (
           <div
-            key={account.id || index}
+            key={account._id || index}
             className="group bg-white border border-slate-200 rounded-2xl p-5 flex items-center justify-between gap-4 hover:border-slate-300 transition-all"
           >
             <div className="flex items-center gap-4 min-w-0">

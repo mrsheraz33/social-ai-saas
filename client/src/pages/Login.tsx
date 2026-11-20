@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MailIcon, LockIcon, ArrowRightIcon, User2Icon } from "lucide-react";
 import { useAuth } from "../context/authContext";
 import api from "../api/axios";
@@ -12,10 +12,11 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const { login, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (isAuthenticated) {
-            window.location.href = "/dashboard";
+            navigate("/dashboard", { replace: true });
         }
     }, [isAuthenticated]);
 
@@ -31,7 +32,7 @@ export default function Login() {
 
             toast.success(loginState ? "Logged in successfully!" : "Account created!");
             login(data.user, data.token);
-            window.location.href = "/dashboard";
+            navigate("/dashboard", { replace: true });
 
         } catch (error: any) {
             toast.error(error.response?.data?.message || error?.message || "Something went wrong");

@@ -18,13 +18,27 @@ export const generatePost = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { prompt, tone = "professional", generateImage = false } = req.body;
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const { prompt, tone = "Professional", generateImage = false } = req.body;
 
     if (!prompt) {
       res.status(400).json({
         success: false,
         message: "Prompt is required",
       });
+      return;
+    }
+    if (typeof prompt !== "string") {
+      res.status(400).json({ success: false, message: "Prompt must be a string" });
+      return;
+    }
+    if (prompt.length > 1000) {
+      res.status(400).json({ success: false, message: "Prompt too long (max 1000 chars)" });
+      return;
+    }
+    const allowedTones = ["Professional", "Casual", "Funny", "Creative", "Excited"];
+    if (!allowedTones.includes(tone)) {
+      res.status(400).json({ success: false, message: "Invalid tone" });
       return;
     }
 
@@ -107,11 +121,12 @@ export const getGenerations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const generations = await Generation.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
 
-    res.status(200).json(generations);
+    res.status(200).json({ success: true, count: generations.length, generations });
   } catch (error) {
     next(error);
   }
@@ -123,12 +138,12 @@ export const getPost = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // FIXED: Query Post collection and return array
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const posts = await Post.find({
       user: req.user._id,
     }).sort({ createdAt: -1 });
 
-    res.status(200).json(posts);
+    res.status(200).json({ success: true, count: posts.length, posts });
   } catch (error) {
     next(error);
   }
@@ -140,7 +155,17 @@ export const schedulePost = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const { content, platforms, scheduledFor, status } = req.body;
+    if (!content || !platforms || !scheduledFor) {
+      res.status(400).json({ success: false, message: "Content, platforms, and scheduledFor are required" });
+      return;
+    }
+    const scheduledDate = new Date(scheduledFor);
+    if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) {
+      res.status(400).json({ success: false, message: "Invalid scheduledFor date" });
+      return;
+    }
 
     let parsePlatforms = platforms;
     if (typeof platforms === "string") {
@@ -178,11 +203,11 @@ export const schedulePost = async (
       platforms: parsePlatforms,
       mediaUrl,
       mediaType,
-      scheduledFor,
+      scheduledFor: scheduledDate,
       status: status || "scheduled",
     });
 
-    res.status(201).json(post);
+    res.status(201).json({ success: true, post });
   } catch (error) {
     next(error);
   }

@@ -54,7 +54,7 @@ isMobileMenuOpen &&
 </div>
 
   </header>
-  <main className="flex-1 overflow-auto p-4 sm:p:6 xl:p-12">
+  <main className="flex-1 overflow-auto p-4 sm:p-6 xl:p-12">
     <Outlet/>
   </main>
 </div>

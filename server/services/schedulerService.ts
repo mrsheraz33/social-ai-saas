@@ -95,7 +95,7 @@ export const initScheduler = (): void => {
 
           await ActivityLog.create({
             user: userId,
-            actionType: "post_published",
+            actionType: "POST_PUBLISHED",
             description: `Post successfully published to ${accounts.map((a) => a.platform).join(", ")}`,
             relatedPost: post._id,
           });
@@ -103,8 +103,15 @@ export const initScheduler = (): void => {
           console.log(`[Scheduler] Post ${post._id} published successfully!`);
         } catch (err: any) {
           console.error(`[Scheduler Error for Post ${post._id}]:`, err?.message || err);
-          post.status = "failed";
-          await post.save();
+          const retries = (post as any).retries || 0;
+          if (retries < 1) {
+            (post as any).retries = retries + 1;
+            post.scheduledFor = new Date(Date.now() + 5 * 60 * 1000);
+            await post.save();
+          } else {
+            post.status = "failed";
+            await post.save();
+          }
         }
       }
     } catch (error) {

@@ -9,6 +9,7 @@ export const getUserAccounts = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const accounts = await Account.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
@@ -29,9 +30,15 @@ export const addAccount = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const { platform, handle, avatarUrl } = req.body;
-
-    const account = await Account.create({ platform, handle, avatarUrl });
+    if (!platform || !handle) {
+      res.status(400).json({ success: false, message: "Platform and handle are required" });
+      return;
+    }
+    const account = await Account.create({
+      platform, handle, avatarUrl, user: req.user._id,
+    });
     res.status(201).json({
       success: true,
       message: "Account added successfully",
@@ -48,6 +55,7 @@ export const disconnectAccount = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!req.user) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const account = await Account.findOne({
       _id: req.params.id,
       user: req.user._id,

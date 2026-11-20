@@ -12,6 +12,8 @@ export const protect = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) throw new Error("JWT_SECRET missing in environment");
     let token: string | undefined;
 
     if (
@@ -31,7 +33,7 @@ export const protect = async (
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "your_fallback_secret",
+      JWT_SECRET,
     ) as { id: string };
 
     const user = await User.findById(decoded.id).select("-password");
