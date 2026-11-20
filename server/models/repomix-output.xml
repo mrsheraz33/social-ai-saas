@@ -1,0 +1,292 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+Account.ts
+ActivityLog.ts
+Generation.ts
+Post.ts
+User.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Account.ts">
+import { Schema, model } from "mongoose";
+
+const accountSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    platform: {
+      type: String,
+      required: true,
+      enum: [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "twitter",
+        "youtube",
+        "tiktok",
+        "pinterest",
+        "reddit",
+        "bluesky",
+        "threads"
+      ],
+    },
+    handle: {
+      type: String,
+      required: true,
+    },
+    zernioAccountId: {
+      type: String,
+    },
+    accessToken: {
+      type: String,
+      default: "",
+    },
+    refreshToken: {
+      type: String,
+      default: "",
+    },
+    tokenExpiresAt: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ["connected", "disconnected", "expired"],
+      default: "connected",
+    },
+    avatarUrl: {
+      type: String,
+      default: "",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+accountSchema.index({ user: 1, zernioAccountId: 1 }, { unique: true, sparse: true });
+
+export const Account = model("Account", accountSchema);
+</file>
+
+<file path="ActivityLog.ts">
+import { Schema, model } from "mongoose";
+
+const activityLogSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    actionType: {
+      type: String,
+      required: true,
+      enum: ["POST_PUBLISHED", "AI_REPLY"],
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    relatedPost: {
+      type: Schema.Types.ObjectId,
+      ref: "Post",
+    },
+    platform: {
+      type: String,
+    },
+    aiGeneratedText: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const ActivityLog = model("ActivityLog", activityLogSchema);
+</file>
+
+<file path="Generation.ts">
+import { Schema, model } from "mongoose";
+
+const generationSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    prompt: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    mediaUrl: {
+      type: String,
+    },
+    mediaType: {
+      type: String,
+      enum: ["image", "video"],
+    },
+    tone: {
+      type: String,
+    }
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Generation = model("Generation", generationSchema);
+</file>
+
+<file path="Post.ts">
+import { Schema, model } from "mongoose";
+
+const postSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    mediaUrl: {
+      type: String,
+    },
+    mediaType: {
+      type: String,
+      enum: ["image", "video"],
+    },
+    platforms: [
+      {
+        type: String,
+        enum: [
+          "facebook",
+          "instagram",
+          "linkedin",
+          "twitter",
+          "youtube",
+          "tiktok",
+          "pinterest",
+          "reddit",
+          "bluesky",
+          "threads",
+        ],
+        required: true,
+      },
+    ],
+    scheduledFor: {
+      type: Date,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["draft", "scheduled", "published", "failed"],
+      default: "scheduled",
+    },
+    retries: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+postSchema.index({ status: 1, scheduledFor: 1 });
+postSchema.index({ user: 1, createdAt: -1 });
+
+export const Post = model("Post", postSchema);
+</file>
+
+<file path="User.ts">
+import { Schema, model } from "mongoose";
+
+const userSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: false,
+      select: false,
+    },
+    zerniProfileId: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const User = model("User", userSchema)
+</file>
+
+</files>

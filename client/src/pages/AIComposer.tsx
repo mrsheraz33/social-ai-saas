@@ -25,7 +25,11 @@ function AIComposer() {
       try {
         const { data } = await api.get("/api/posts/generations");
         if (isMounted) {
-          setGenerations(data);
+          const generationList = Array.isArray(data) ? data : data?.generations;
+          if (!Array.isArray(generationList)) {
+            throw new Error("Unexpected response while loading generations");
+          }
+          setGenerations(generationList);
         }
       } catch (error: any) {
         toast.error(error.response?.data?.message || error.message);
