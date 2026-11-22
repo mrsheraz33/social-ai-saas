@@ -319,7 +319,7 @@ function Scheduler() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-500 line-clamp-2 max-w-4/5">{post.content}</p>
+                  <p className="text-sm text-slate-500 whitespace-pre-wrap break-words">{post.content}</p>
                 </div>
               ))
             )}
