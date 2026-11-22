@@ -10,8 +10,6 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const hf = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
-
 export const generatePost = async (
   req: AuthRequest,
   res: Response,
@@ -74,26 +72,50 @@ export const generatePost = async (
 
     let mediaUrl = "";
     let mediaType: "image" | undefined = undefined;
+    let imageError: string | undefined;
 
     if (generateImage) {
       try {
-        const imageBlob = (await hf.textToImage({
+        const hfToken = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY;
+        if (!hfToken) {
+          throw new Error("Image generation is not configured. Set HF_TOKEN on the server.");
+        }
+
+        if (
+          !process.env.CLOUDINARY_CLOUD_NAME ||
+          !process.env.CLOUDINARY_API_KEY ||
+          !process.env.CLOUDINARY_API_SECRET
+        ) {
+          throw new Error("Image storage is not configured. Check the Cloudinary server settings.");
+        }
+
+        const imageClient = new InferenceClient(hfToken);
+        const imageBlob = await imageClient.textToImage({
+          provider: "fal-ai",
           model: "black-forest-labs/FLUX.1-schnell",
           inputs: imagePrompt,
-        })) as unknown as Blob;
+        }, { outputType: "blob" });
 
         const arrayBuffer = await imageBlob.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const base64Image = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+        if (buffer.length === 0) {
+          throw new Error("The image provider returned an empty image.");
+        }
+        const mimeType = imageBlob.type || "image/png";
+        const base64Image = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
         const uploadResponse = await cloudinary.uploader.upload(base64Image, {
           folder: "saas_social_posts",
         });
 
+        if (!uploadResponse.secure_url) {
+          throw new Error("Cloudinary did not return an image URL.");
+        }
         mediaUrl = uploadResponse.secure_url;
         mediaType = "image";
-      } catch (imgError: any) {
-        console.warn("Image Upload Error:", imgError?.message);
+      } catch (imgError) {
+        imageError = imgError instanceof Error ? imgError.message : "Unknown image generation error";
+        console.error("Image generation failed:", imageError);
       }
     }
 
@@ -109,6 +131,7 @@ export const generatePost = async (
     res.status(201).json({
       success: true,
       data: generation,
+      ...(imageError && { imageError }),
     });
   } catch (error) {
     next(error);

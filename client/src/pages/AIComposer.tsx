@@ -64,7 +64,11 @@ function AIComposer() {
       const generationData = data.data || data;
       setGenerations((prev) => [generationData, ...prev])
       setActiveScheduler(generationData)
-      toast.success("Content generated successfully!")
+      if (data.imageError) {
+        toast.error(`Post created, but image generation failed: ${data.imageError}`)
+      } else {
+        toast.success("Content generated successfully!")
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Generation failed. Ensure route exists.")
     } finally {

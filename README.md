@@ -64,6 +64,7 @@ CLIENT_URL=http://localhost:5173
 # AI & Media Services
 GEMINI_API_KEY=your_gemini_api_key
 HF_TOKEN=your_huggingface_api_token
+# Alternatively, use HUGGINGFACE_API_KEY for existing deployments
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
